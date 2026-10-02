@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assembly Line Balancer & Optimization Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230A0B0E'/%3E%3Crect x='4' y='4' width='8' height='8' rx='1' fill='%23E50914'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="industrial-theme">
+
+  <!-- Main Container with Reduced Max Width & Generous Margins -->
+  <main class="main-layout">
+
+    <!-- Clean Minimalist Page Header (No Top Navbar, No Icons) -->
+    <header class="page-intro">
+      <div class="intro-title-row">
+        <h1 class="page-title">Assembly Line Optimization & Simulation</h1>
+      </div>
+      <p class="page-subtitle">Configure manufacturing tasks, resources, and production parameters for automated line
+        balancing.</p>
+    </header>
+
+    <!-- Section 1: Production Targets & Line Parameters -->
+    <section class="panel-card">
+      <div class="card-header">
+        <h2 class="card-title">Production Targets & Shift Parameters</h2>
+      </div>
+
+      <div class="card-body">
+        <div class="parameters-grid">
+          <!-- Parameter 1: Available Workers -->
+          <div class="form-group param-card">
+            <label for="inputWorkers" class="param-label">Available Workers</label>
+            <div class="input-with-unit">
+              <input type="number" id="inputWorkers" class="form-control param-input" placeholder="e.g. 12" min="1"
+                step="1" value="12">
+              <span class="unit-tag">headcount</span>
+            </div>
+            <div class="param-hint">Headcount limit for the entire line (optional).</div>
+          </div>
+
+          <!-- Parameter 2: Target Quantity -->
+          <div class="form-group param-card">
+            <label for="inputTargetQty" class="param-label">Target Quantity</label>
+            <div class="input-with-unit">
+              <input type="number" id="inputTargetQty" class="form-control param-input" placeholder="e.g. 180" min="1"
+                step="1" value="180">
+              <span class="unit-tag">units</span>
+            </div>
+            <div class="param-hint">Desired output units per shift (optional).</div>
+          </div>
+
+          <!-- Parameter 3: Shift Duration (Available Time) -->
+          <div class="form-group param-card">
+            <label for="inputShiftDuration" class="param-label">Shift Duration (Available Time) *</label>
+            <div class="input-with-unit">
+              <input type="number" id="inputShiftDuration" class="form-control param-input" placeholder="e.g. 8"
+                min="0.5" step="0.5" value="8" required>
+              <span class="unit-tag">hours</span>
+            </div>
+            <div class="param-hint">Required. Net available operating time in hours (8 = one 8-hour shift).</div>
+          </div>
+        </div>
+
+        <!-- Cost Model (always visible, all three required) -->
+        <div class="advanced-drawer">
+          <div class="advanced-divider">Cost Model (required)</div>
+          <div class="advanced-grid">
+            <div class="form-group">
+              <label for="inputUnitPrice">Unit Revenue ($/unit) *</label>
+              <input type="number" id="inputUnitPrice" class="form-control" value="65" step="1" min="0.01" required>
+              <span class="sub-hint">Required, must be greater than 0</span>
+            </div>
+            <div class="form-group">
+              <label for="inputWorkerSalary">Worker Salary ($/worker/shift) *</label>
+              <input type="number" id="inputWorkerSalary" class="form-control" value="28" step="1" min="0.01" required>
+              <span class="sub-hint">Required, must be greater than 0</span>
+            </div>
+            <div class="form-group">
+              <label for="inputWipCost">WIP Holding Cost ($/WIP/shift) *</label>
+              <input type="number" id="inputWipCost" class="form-control" value="0.4" step="0.05" min="0.01" required>
+              <span class="sub-hint">Required, must be greater than 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2a: Assembly Line Table -->
+    <section class="panel-card">
+      <div class="card-header table-header-bar">
+        <div class="header-title-group">
+          <h2 class="card-title">Assembly Line Table</h2>
+          <span id="rowCountBadge" class="badge-count">12 rows</span>
+        </div>
+        <button id="tableToggleBtn" class="chevron-toggle-btn" type="button" aria-expanded="true"
+          aria-label="Collapse table">
+          <span class="chevron-icon">&#9660;</span>
+        </button>
+      </div>
+
+      <div id="tableBodyWrap">
+        <!-- Integrated Toolbar in Table Section (Presets, Import/Export, Row Actions) -->
+        <div class="table-toolbar">
+          <div class="toolbar-group">
+            <button id="btnAddTaskRow" class="btn btn-primary btn-sm">+ Add Task</button>
+            <button id="btnAddResourceRow" class="btn btn-secondary btn-sm">+ Add Resource</button>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="csvFileInput" class="btn btn-outline btn-sm file-upload-label">
+              Import CSV
+              <input type="file" id="csvFileInput" accept=".csv" class="visually-hidden">
+            </label>
+            <button id="btnExportCsv" class="btn btn-outline btn-sm">Export CSV</button>
+            <button id="btnPrintTable" class="btn btn-outline btn-sm">Print</button>
+            <button id="btnValidateGraph" class="btn btn-secondary btn-sm">Validate</button>
+            <button id="btnClearTable" class="btn btn-outline-danger btn-sm">Clear</button>
+          </div>
+        </div>
+
+        <!-- Real-time Validation Message Banner -->
+        <div id="validationBanner" class="validation-banner hidden">
+          <div id="bannerMessage" class="banner-message"></div>
+          <button id="btnCloseBanner" class="banner-close" aria-label="Close message">Dismiss</button>
+        </div>
+
+        <!-- Data Table Container -->
+        <div id="tableViewContainer" class="table-responsive">
+          <table id="factoryTable" class="industrial-table">
+            <thead>
+              <tr>
+                <th style="width: 90px;">ID</th>
+                <th style="width: 130px;">Type</th>
+                <th style="min-width: 170px;">Relation (Predecessors)</th>
+                <th style="width: 130px;">Cycle Time <span class="th-unit">(s)</span></th>
+                <th style="width: 95px;">Quantity</th>
+                <th style="width: 120px;">Initial Stock</th>
+                <th style="width: 130px;">Operation Type</th>
+                <th style="width: 90px;">Min Ops</th>
+                <th style="width: 90px;">Max Ops</th>
+                <th style="width: 120px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Dynamic rows rendered via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-footer-notes">
+          <span class="note-item"><strong class="highlight-red">Precedence Rule:</strong> Predecessors in Relation must
+            refer to existing IDs in the table.</span>
+          <span class="note-item"><strong class="highlight-red">Flow Rule:</strong> Unidirectional converging DAG
+            (out-degree &le; 1, no branching into multiple downstream paths).</span>
+          <span class="note-item"><strong class="highlight-red">Machine Rule:</strong> Machine operations cannot be
+            accelerated by extra workers (Min Ops = Max Ops).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2b: Precedence Graph (DAG) -->
+    <section class="panel-card">
+      <div class="card-header table-header-bar">
+        <div class="header-title-group">
+          <h2 class="card-title">Precedence Graph (DAG)</h2>
+        </div>
+        <button id="graphToggleBtn" class="chevron-toggle-btn" type="button" aria-expanded="true"
+          aria-label="Collapse graph">
+          <span class="chevron-icon">&#9660;</span>
+        </button>
+      </div>
+
+      <div id="graphBodyWrap" class="graph-container">
+        <div class="graph-header-meta">
+          <span class="control-label">Precedence Flow & Topological Order:</span>
+          <div id="topoOrderText" class="topo-order-display">Calculating...</div>
+        </div>
+        <div id="dagFlowContainer" class="dag-canvas-wrap">
+          <svg id="dagSvg" class="dag-svg"></svg>
+          <div id="dagNodesLayer" class="dag-nodes-layer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Single Execution Hub (Only Simulated Annealing + Simulator) -->
+    <section class="execution-section">
+      <button id="btnRunOptimization" class="btn btn-danger btn-lg execution-btn">
+        Run Simulated Annealing + Discrete Event Simulator
+      </button>
+    </section>
+
+    <!-- Section 4: Results & Analytics (Rendered dynamically) -->
+    <section id="resultsSection" class="panel-card results-section hidden">
+      <div class="card-header results-header-bar">
+        <h2 class="card-title">Optimization & Simulation Results</h2>
+        <div id="resultFlagBanner" class="result-flag-badge">
+          <!-- Flag badge rendered via JS -->
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Throughput Output</div>
+            <div id="kpiUnits" class="kpi-value">0</div>
+            <div id="kpiUnitsSub" class="kpi-sub">Target: 0 units</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Assigned Headcount</div>
+            <div id="kpiWorkers" class="kpi-value">0</div>
+            <div id="kpiWorkersSub" class="kpi-sub">Cap: 0 workers</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Average Line Efficiency</div>
+            <div id="kpiEfficiency" class="kpi-value">0%</div>
+            <div class="kpi-sub">Station Busy Utilization</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Average In-Process WIP</div>
+            <div id="kpiWip" class="kpi-value">0.0</div>
+            <div class="kpi-sub">Time-Weighted Buffer</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Bottleneck Cycle Time</div>
+            <div id="kpiBottleneck" class="kpi-value">0.00 min</div>
+            <div id="kpiBottleneckSub" class="kpi-sub">Critical Station Cycle</div>
+          </div>
+                    <div class="kpi-card">
+                      <div class="kpi-label">Total Processing Time</div>
+                      <div id="kpiTotalTime" class="kpi-value">0 s</div>
+                      <div class="kpi-sub">Input received to result ready</div>
+                    </div>
+
+          <div class="kpi-card highlight-card">
+            <div class="kpi-label">Financial Fitness Score</div>
+            <div id="kpiFitness" class="kpi-value">$0.00</div>
+            <div class="kpi-sub">Revenue - Labor - WIP Cost</div>
+          </div>
+        </div>
+
+        <!-- Workstation Layout Cards -->
+        <div class="station-results-container">
+          <div class="section-subtitle">
+            <span>Workstation Allocation & Operator Assignments</span>
+            <span id="stationCountSummary" class="sub-count">4 Stations</span>
+          </div>
+
+          <div id="stationCardsGrid" class="station-cards-grid">
+            <!-- Dynamic station cards rendered via JS -->
+          </div>
+        </div>
+
+        <div class="cycle-time-charts">
+          <div class="cycle-time-legend">
+            <span class="legend-item"><i class="legend-swatch raw"></i>Raw task</span>
+            <span class="legend-item"><i class="legend-swatch grouped"></i>Station</span>
+            <span class="legend-item"><i class="legend-swatch bottleneck"></i>Slowest (bottleneck)</span>
+            <span class="legend-item"><i class="legend-line max"></i>Slowest line</span>
+            <span class="legend-item"><i class="legend-line avg"></i>Average line</span>
+            <span class="legend-note">Both charts use the same y-axis scale.</span>
+          </div>
+          <section class="cycle-time-chart-section">
+            <div class="section-subtitle">
+              <span>Raw Task Cycle Times</span>
+              <span class="sub-count">Before Grouping</span>
+            </div>
+            <div id="rawTaskCycleChart" class="cycle-time-chart-wrap"></div>
+          </section>
+          <section class="cycle-time-chart-section">
+            <div class="section-subtitle">
+              <span>Grouped Station Cycle Times</span>
+              <span class="sub-count">After Grouping</span>
+            </div>
+            <div id="groupedStationCycleChart" class="cycle-time-chart-wrap"></div>
+          </section>
+        </div>
+
+        <!-- Alternative Candidate Layouts Tabs -->
+        <div id="candidateTabsContainer" class="candidate-tabs-wrap hidden">
+          <div class="candidate-header">
+            <span>Alternative Feasible Line Layouts:</span>
+            <div id="candidateTabsList" class="tabs-list"></div>
+          </div>
+          <div id="candidateTabContent" class="candidate-content-panel"></div>
+        </div>
+
+        <!-- Optimization History Convergence Trajectory -->
+        <div id="historyGraphWrap" class="history-graph-box hidden">
+          <div class="section-subtitle">Annealing Convergence Trajectory (Fitness over Iterations)</div>
+          <div class="convergence-chart-wrap">
+            <svg id="convergenceSvg" class="convergence-svg" viewBox="0 0 800 180" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Processing Modal -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-card">
+      <div class="spinner-ring"></div>
+      <div id="loadingTitle" class="loading-title">Running Next-Event Simulation...</div>
+      <div id="loadingSubtitle" class="loading-subtitle">Evaluating stochastic replications and annealing layouts...
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+
+</html>
